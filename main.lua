@@ -1,5 +1,6 @@
 local matrix = require( 'matrix' )
 local point = require( 'point' )
+local console = require( 'console' )
 local vector = point -- use to increase clarity of intent
 
 --------------------------------------------------------------------------------
@@ -127,10 +128,11 @@ local function cut( poly,
 
   -- find most remote point from cut
   local angle_hint = out_pt - in_pt
-  local angle = math.atan( angle_hint.y, angle_hint.x ) * -1
+  local angle = math.atan2( angle_hint.y, angle_hint.x ) * -1
+  --console.log( angle_hint.x .. " " .. angle_hint.y .. " " .. angle )
   local i_keep, i_dist = 0, 2^32 -- TODO MAGIC NUMBER
   for i = 1, #poly do
-    local pt = matrix.rotate2d( poly[i], angle )
+    local pt = matrix.rotate2d( poly[i] - in_pt, angle )
     if pt.x < i_dist then
       i_dist = pt.x
       i_keep = i
@@ -143,7 +145,6 @@ local function cut( poly,
   -- table.move( poly, 1, i_keep-1, #poly_shift+1, poly_shift )
   for i = i_keep, #poly do table.insert( poly_shift, poly[ i ]) end
   for i = 1, i_keep-1   do table.insert( poly_shift, poly[ i ]) end
-  
   -- get cut vector
   local cut_pt, cut_vec = middle( in_pt, out_pt )
   -- find all intersections and pair them up
@@ -192,13 +193,13 @@ love.draw = function()
   drawPoint( middle_pt )
   drawVector( middle_pt, cut_vec )
   -- check if cut_vec intersects any lines
-  love.graphics.setColor( colors.light )
-  for pt1, pt2 in poly_pairs( square2 ) do
-    local hit, hit_pt = intersect( pt1, pt2, middle_pt, cut_vec )
-    if hit then
-      drawPoint( hit_pt )
-    end
-  end
+  -- love.graphics.setColor( colors.light )
+  -- for pt1, pt2 in poly_pairs( square2 ) do
+  --   local hit, hit_pt = intersect( pt1, pt2, middle_pt, cut_vec )
+  --   if hit then
+  --     drawPoint( hit_pt )
+  --   end
+  -- end
 
   local poly_cut, i_keep = cut( square2, keep_pt, cut_pt )
   love.graphics.setColor( colors.light )
@@ -206,6 +207,7 @@ love.draw = function()
   love.graphics.setColor( colors.black )
   drawPoint( i_keep )
 
+  console.draw()
 end
 
 local mouse_bindings = {
