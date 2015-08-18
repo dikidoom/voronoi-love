@@ -34,9 +34,9 @@ local square2 = {
 local function scalePoly( poly, scale )
    result = {}
    for i, pt in ipairs( poly ) do
-     table.insert( result, point:new( pt.x * scale,
-                                      pt.y * scale ))
-     --print( pt.x * scale, pt.y * scale )
+     table.insert( result,
+                   point:new( pt.x * scale,
+                              pt.y * scale ))
    end
    return result
 end
@@ -119,6 +119,56 @@ local function intersect( pt1, pt2, -- the line
   return hit, hit_point
 end
 
+local function cut( poly,
+                    in_pt, -- supposed to be IN new poly
+                    out_pt -- supposedly OUT of new poly
+                  )
+  -- return cut poly
+
+  -- find most remote point from cut
+  local angle_hint = out_pt - in_pt
+  local angle = math.atan( angle_hint.y, angle_hint.x ) * -1
+  local i_keep, i_dist = 0, 2^32 -- TODO MAGIC NUMBER
+  for i = 1, #poly do
+    local pt = matrix.rotate2d( poly[i], angle )
+    if pt.x < i_dist then
+      i_dist = pt.x
+      i_keep = i
+    end
+  end
+  -- create new poly by shifting remote point to first place
+  local poly_shift = {}
+  -- NB: Löve uses Lua 5.1
+  -- table.move( poly, i_keep, #poly, 1, poly_shift )
+  -- table.move( poly, 1, i_keep-1, #poly_shift+1, poly_shift )
+  for i = i_keep, #poly do table.insert( poly_shift, poly[ i ]) end
+  for i = 1, i_keep-1   do table.insert( poly_shift, poly[ i ]) end
+  
+  -- get cut vector
+  local cut_pt, cut_vec = middle( in_pt, out_pt )
+  -- find all intersections and pair them up
+  local poly_cut = {}
+  local i = 1
+  local hit_flip = false -- hit-flip toggles on every hit and determines which points make it into the new poly
+                         -- (entry- and exit-points of our cutting-vector are marked by this)
+  for pt1, pt2 in poly_pairs( poly_shift ) do
+    local hit, hit_pt = intersect( pt1, pt2, cut_pt, cut_vec )
+    if hit then
+      if not hit_flip then
+        table.insert( poly_cut, pt1 )
+        table.insert( poly_cut, hit_pt )
+      else
+        table.insert( poly_cut, hit_pt )
+      end
+      hit_flip = not hit_flip
+    else
+      if not hit_flip then table.insert( poly_cut, pt1 ) end
+    end
+    i = i + 1
+  end
+  return poly_cut, poly[ i_keep ]
+end
+
 --------------------------------------------------------------------------------
 love.load = function()
   love.window.setMode( 600, 600 )
@@ -127,8 +177,8 @@ end
 
 love.draw = function()
   love.graphics.setBackgroundColor( 92, 92, 92 )
-  love.graphics.setColor( colors.dark )
-  drawPoly( square2 )
+  -- love.graphics.setColor( colors.dark )
+  -- drawPoly( square2 )
   love.graphics.setColor( colors.red )
   drawPoint( keep_pt )
   love.graphics.setColor( colors.blue )
@@ -142,22 +192,20 @@ love.draw = function()
   drawPoint( middle_pt )
   drawVector( middle_pt, cut_vec )
   -- check if cut_vec intersects any lines
-  -- debug: line transformation
-  -- for pt1, pt2 in poly_pairs( square2 ) do
-  --   local hit, hit_pt = intersect( pt1, pt2, middle_pt, cut_vec )
-  -- end
-  local hit, hit_point = intersect( point:new( 100, 100 ),
-                                    point:new( 400, 190 ),
-                                    middle_pt,
-                                    cut_vec )
-  love.graphics.setColor( colors.dark )
-  drawPoly( line )
-  if hit then
-    love.graphics.setColor( colors.white )
-  else
-    love.graphics.setColor( colors.light )
+  love.graphics.setColor( colors.light )
+  for pt1, pt2 in poly_pairs( square2 ) do
+    local hit, hit_pt = intersect( pt1, pt2, middle_pt, cut_vec )
+    if hit then
+      drawPoint( hit_pt )
+    end
   end
-  drawPoint( hit_point )
+
+  local poly_cut, i_keep = cut( square2, keep_pt, cut_pt )
+  love.graphics.setColor( colors.light )
+  drawPoly( poly_cut )
+  love.graphics.setColor( colors.black )
+  drawPoint( i_keep )
+
 end
 
 local mouse_bindings = {
