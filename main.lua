@@ -7,23 +7,23 @@ local vector = point -- use to increase clarity of intent
 local cut = require( 'cut' )
 
 --------------------------------------------------------------------------------
-local keep_pt = point:new( 100, 200 )
-local cut_pt = point:new( 400, 230 )
+local dots = {}
+
+for i = 1, 12 do
+  local dot = {}
+  table.insert( dot, point:new(( love.math.random() * 580 ) + 20,
+                               ( love.math.random() * 580 ) + 20 ))
+  table.insert( dot, point:new(( love.math.random() * 100 ) - 50,
+                  ( love.math.random() * 100 )- 50 ))
+  table.insert( dots, dot )
+end
 
 local square = {
-  point:new(-1, -1),
-  point:new(-1, 1),
-  point:new(1, 1),
-  point:new(1, -1)
-}
-
-local square2 = {
   point:new( 10, 10 ),
   point:new( 590, 10 ),
   point:new( 590, 590 ),
-  point:new( 10, 590 )}
-
-local shape = square2
+  point:new( 10, 590 )
+}
 
 local function scalePoly( poly, scale )
    result = {}
@@ -53,44 +53,44 @@ local function drawVector( origin, vec )
 end
 
 --------------------------------------------------------------------------------
+love.update = function( dt )
+  for _, dot in pairs( dots ) do
+    local velo = dot[2] * dt
+    dot[1] = dot[1] + velo
+    if     dot[1].x < 10  then dot[2].x = dot[2].x * -1
+    elseif dot[1].x > 590 then dot[2].x = dot[2].x * -1 end
+    if     dot[1].y < 10  then dot[2].y = dot[2].y * -1
+    elseif dot[1].y > 590 then dot[2].y = dot[2].y * -1 end
+    -- if     dot[1].x <= 10  then dot[1].x = dot[1].x + 580
+    -- elseif dot[1].x >= 590 then dot[1].x = dot[1].x - 580 end
+    -- if     dot[1].y <= 10  then dot[1].y = dot[1].y + 580
+    -- elseif dot[1].y >= 590 then dot[1].y = dot[1].y - 580 end
+  end
+end
+
 love.draw = function()
   love.graphics.setBackgroundColor( 92, 92, 92 )
 
-  love.graphics.setColor( colors.light )
-  drawPoly( shape )
+  for i, dot in ipairs( dots ) do
+    love.graphics.setColor( colors.red )
+    love.graphics.circle( 'fill', dot[1].x, dot[1].y, 5 )
+    local shape = square
+    for i2, other_dot in ipairs( dots ) do
+      if not( i == i2 )then shape = cut.cut( shape, dot[1], other_dot[1] ) end
+    end
+    love.graphics.setColor( colors.dark )
+    drawPoly( shape )
+  end
 
-  love.graphics.setColor( colors.red )
-  drawPoint( keep_pt )
-  love.graphics.setColor( colors.blue )
-  drawPoint( cut_pt )
-
-  local poly_cut, i_keep = cut.cut( shape, keep_pt, cut_pt )
-  love.graphics.setColor( colors.dark )
-  drawPoly( poly_cut )
-  love.graphics.setColor( colors.black )
-  drawPoint( i_keep )
-
-  local middle_pt, cut_vec = cut.middle( keep_pt, cut_pt )
   love.graphics.setColor( colors.yellow )
-  drawPoint( middle_pt )
-  drawVector( middle_pt, cut_vec )
+  drawPoly( square )
 
-  --console.draw()
 end
 
 local key_bindings = {
-  ['tab'] = function()
-    shape = cut.cut( shape, keep_pt, cut_pt )
-  end
 }
 
 local mouse_bindings = {
-  ['l'] = function( x, y )
-    keep_pt = point:new( x, y )
-  end,
-  ['r'] = function( x, y )
-    cut_pt = point:new( x, y )
-  end
 }
 
 local mouse_down = ''
