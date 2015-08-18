@@ -81,7 +81,7 @@ local function middle( pt1, pt2 )
   return mid_pt, mid_vec
 end
 
-local function intersect( line, -- { point, point }
+local function intersect( pt1, pt2, -- the line
                           origin, -- point
                           vector -- vector
                         )
@@ -89,17 +89,16 @@ local function intersect( line, -- { point, point }
   -- return true/false accordingly and the intersection point (might not lie on line)
 
   -- get line angle
-  local angle = math.atan2( line[2].y - line[1].y,
-                            line[2].x - line[1].x )
+  local angle = math.atan2( pt2.y - pt1.y,
+                            pt2.x - pt1.x )
   -- transform line, vector and origin into line space
   -- translations
-  local o = origin - line[1]
-  local l = { point:new( 0, 0 ),
-              line[2] - line[1] }
+  local o = origin - pt1
+  local p1 = point:new( 0, 0 )
+  local p2 = pt2 - pt1
   local v -- not translated
   -- rotations
-  l = { l[1],
-        matrix.rotate2d( l[2], angle * -1 )}
+  p2 = matrix.rotate2d( p2, angle * -1 )
   o = matrix.rotate2d( o, angle * -1 )
   v = matrix.rotate2d( vector, angle * -1 )
   -- delta-y is the y-distance of line to origin
@@ -114,8 +113,8 @@ local function intersect( line, -- { point, point }
   local hit_x = o.x - run_x
   -- if hit_x is within line limits return true, else return false
   -- NB: line[1].x is always 0
-  local hit = hit_x >= 0 and hit_x <= l[2].x
-  local hit_point = matrix.rotate2d( point:new( hit_x, 0 ), angle ) + line[1]
+  local hit = hit_x >= 0 and hit_x <= p2.x
+  local hit_point = matrix.rotate2d( point:new( hit_x, 0 ), angle ) + pt1
   --return hit, line, origin, vector, hit_x
   return hit, hit_point
 end
@@ -144,9 +143,13 @@ love.draw = function()
   drawVector( middle_pt, cut_vec )
   -- check if cut_vec intersects any lines
   -- debug: line transformation
-  local line = { point:new( 100, 100 ),
-                 point:new( 400, 190 ) }
-  local hit, hit_point = intersect( line, middle_pt, cut_vec )
+  -- for pt1, pt2 in poly_pairs( square2 ) do
+  --   local hit, hit_pt = intersect( pt1, pt2, middle_pt, cut_vec )
+  -- end
+  local hit, hit_point = intersect( point:new( 100, 100 ),
+                                    point:new( 400, 190 ),
+                                    middle_pt,
+                                    cut_vec )
   love.graphics.setColor( colors.dark )
   drawPoly( line )
   if hit then
