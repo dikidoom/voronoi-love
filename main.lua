@@ -41,11 +41,20 @@ local function scalePoly( poly, scale )
    return result
 end
 
+local function poly_pairs( p )
+  -- iterator making pt1,pt2-pairs from {pt,...}
+  local i = 1
+  return function()
+    local pt1 = p[i]
+    local pt2 = p[i+1]
+    if pt2 == undefined then pt2 = p[1] end
+    i = i + 1
+    if i > #p+1 then return nil else return pt1, pt2 end
+  end
+end
+
 local function drawPoly( poly )
-  for i = 0, #poly-1 do
-    local pt1 = poly[i]
-    if pt1 == undefined then pt1 = poly[#poly] end
-    local pt2 = poly[i+1]
+  for pt1, pt2 in poly_pairs( poly ) do
     love.graphics.line( pt1.x, pt1.y,
                         pt2.x, pt2.y )
   end
@@ -137,9 +146,6 @@ love.draw = function()
   -- debug: line transformation
   local line = { point:new( 100, 100 ),
                  point:new( 400, 190 ) }
-                 -- point:new( love.mouse.getX(),
-                 --            love.mouse.getY())}
-  --local hit, line2, origin2, vector2, hit_x = intersect( line, middle_pt, cut_vec )
   local hit, hit_point = intersect( line, middle_pt, cut_vec )
   love.graphics.setColor( colors.dark )
   drawPoly( line )
